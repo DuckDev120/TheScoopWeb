@@ -176,7 +176,7 @@ function ArticleContent({ article }) {
         }}
       >
         {article.content.split('\n').filter(Boolean).map((paragraph, i) => (
-          <p key={i} className="first-letter:text-4xl first-letter:font-bold first-letter:float-right first-letter:ml-2 first-letter:mt-1">
+          <p key={i}>
             {paragraph}
           </p>
         ))}

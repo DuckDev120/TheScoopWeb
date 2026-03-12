@@ -18,12 +18,23 @@ export default function AdminCodeGenerator({ onGenerated }) {
   const [generating, setGenerating] = useState(false);
   const [lastCode, setLastCode] = useState(null);
   const [count, setCount] = useState(1);
+  const [readerName, setReaderName] = useState('');
 
   const handleGenerate = async () => {
+    if (!readerName.trim()) {
+      toast.error('חובה להזין את שם הקורא המיועד.');
+      return;
+    }
+
     setGenerating(true);
     const codes = [];
     for (let i = 0; i < count; i++) {
-      codes.push({ code_string: generateCode(), is_used: false });
+      codes.push({ 
+        code_string: generateCode(), 
+        is_used: false,
+        reader_name: readerName.trim(),
+        is_active: true
+      });
     }
     
     const { error } = await supabase.from('access_codes').insert(codes);
@@ -31,8 +42,9 @@ export default function AdminCodeGenerator({ onGenerated }) {
     if (error) {
       toast.error('שגיאה ביצירת קודים.');
     } else {
-      setLastCode(codes.length === 1 ? codes[0].code_string : `${codes.length} קודים נוצרו בהצלחה`);
+      setLastCode(codes.length === 1 ? codes[0].code_string : `${codes.length} קודים נוצרו בהצלחה עבור ${readerName.trim()}`);
       toast.success(`נוצרו ${codes.length} קודי גישה חדשים!`);
+      setReaderName(''); // Reset for next code
       onGenerated();
     }
     setGenerating(false);
@@ -79,9 +91,22 @@ export default function AdminCodeGenerator({ onGenerated }) {
             style={{ borderColor: '#c4b69c', backgroundColor: '#faf6ed' }}
           />
         </div>
+        <div className="flex-1">
+          <label className="text-xs mb-1 block" style={{ color: '#8b7355', fontFamily: "'Georgia', serif" }}>
+            שם הקורא (חובה)
+          </label>
+          <Input
+            type="text"
+            value={readerName}
+            onChange={(e) => setReaderName(e.target.value)}
+            placeholder="למשל: יוסף מזרחי..."
+            className="w-full border-2"
+            style={{ borderColor: '#c4b69c', backgroundColor: '#faf6ed' }}
+          />
+        </div>
         <Button
           onClick={handleGenerate}
-          disabled={generating}
+          disabled={generating || !readerName.trim()}
           style={{ backgroundColor: '#2c241e', color: '#f4ecd8' }}
         >
           {generating ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <KeyRound className="w-4 h-4 ml-2" />}

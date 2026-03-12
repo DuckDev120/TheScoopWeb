@@ -8,10 +8,12 @@ import { toast } from 'sonner';
 export default function SubscriberGate({ onUnlock }) {
   const [code, setCode] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleVerify = async () => {
     if (!code.trim()) return;
     setVerifying(true);
+    setErrorMsg('');
 
     const { data: codes, error: fetchError } = await supabase
       .from('access_codes')
@@ -19,13 +21,30 @@ export default function SubscriberGate({ onUnlock }) {
       .eq('code_string', code.trim().toUpperCase());
     
     if (fetchError || !codes || codes.length === 0) {
+      setErrorMsg('קוד לא תקף. המהדורה הזו אינה מיועדת לפשוטי העם.');
       toast.error('קוד לא תקף. המהדורה הזו אינה מיועדת לפשוטי העם.');
       setVerifying(false);
       return;
     }
 
     const accessCode = codes[0];
+    
+    if (accessCode.is_closed) {
+      setErrorMsg('המנוי נסגר ואין אפשרות להיכנס אליו יותר.');
+      toast.error('המנוי נסגר ואין אפשרות להיכנס אליו יותר.');
+      setVerifying(false);
+      return;
+    }
+
+    if (accessCode.is_active === false) {
+      setErrorMsg('קוד הגישה שלך הושהה על ידי מנהלי המערכת.');
+      toast.error('קוד הגישה שלך הושהה על ידי מנהלי המערכת.');
+      setVerifying(false);
+      return;
+    }
+
     if (accessCode.is_used) {
+      setErrorMsg('הקוד הזה כבר נפדה על ידי קורא אחר.');
       toast.error('הקוד הזה כבר נפדה על ידי קורא אחר.');
       setVerifying(false);
       return;
@@ -41,18 +60,23 @@ export default function SubscriberGate({ onUnlock }) {
       .eq('id', accessCode.id);
 
     if (updateError) {
+      setErrorMsg('שגיאה בפדיון הקוד. אנא נסו שוב.');
       toast.error('שגיאה בפדיון הקוד. אנא נסו שוב.');
       setVerifying(false);
       return;
     }
 
-    // Store subscription in localStorage (30 days)
-    const expiry = Date.now() + 30 * 24 * 60 * 60 * 1000;
-    localStorage.setItem('scoop_subscription', JSON.stringify({ code: code.trim().toUpperCase(), expiry }));
+    // Store subscription in localStorage (until year 2100)
+    const expiry = new Date('2100-01-01').getTime();
+    localStorage.setItem('scoop_subscription', JSON.stringify({ 
+      code: code.trim().toUpperCase(), 
+      readerName: accessCode.reader_name,
+      expiry 
+    }));
 
-    toast.success('ברוכים הבאים, מנויים נכבדים! הארכיון פתוח בפניכם.');
+    toast.success(`ברוכים הבאים, ${accessCode.reader_name || 'קורא יקר'}! הארכיון פתוח בפניכם.`);
     setVerifying(false);
-    onUnlock();
+    onUnlock(accessCode.reader_name);
   };
 
   return (
@@ -60,7 +84,7 @@ export default function SubscriberGate({ onUnlock }) {
       className="relative rounded-sm border-2 p-8 text-center max-w-md mx-auto my-8"
       style={{ 
         borderColor: '#8b7355',
-        backgroundColor: 'rgba(139, 115, 85, 0.08)',
+        backgroundColor: '#f4ecd8', /* Changed to solid to prevent modal bleed-through */
         fontFamily: "'Georgia', serif"
       }}
     >
@@ -103,6 +127,12 @@ export default function SubscriberGate({ onUnlock }) {
           {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
         </Button>
       </div>
+
+      {errorMsg && (
+        <p className="mt-2 text-sm font-bold" style={{ color: '#c53030' }}>
+          {errorMsg}
+        </p>
+      )}
 
       <p className="text-xs mt-4 italic" style={{ color: '#8b7355' }}>
         ניתן לקבל קודים מכרוז העיר המקומי או ממנהלי הדיסקורד.

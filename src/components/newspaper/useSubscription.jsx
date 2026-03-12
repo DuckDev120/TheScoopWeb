@@ -1,25 +1,36 @@
 import { useState, useCallback } from 'react';
 
 export function useSubscription() {
-  const [isSubscribed, setIsSubscribed] = useState(() => {
+  const [subData, setSubData] = useState(() => {
     const stored = localStorage.getItem('scoop_subscription');
-    if (!stored) return false;
-    const { expiry } = JSON.parse(stored);
-    if (Date.now() > expiry) {
-      localStorage.removeItem('scoop_subscription');
-      return false;
+    if (!stored) return { isSubscribed: false, readerName: null, code: null };
+    
+    try {
+      const parsed = JSON.parse(stored);
+      if (Date.now() > parsed.expiry) {
+        localStorage.removeItem('scoop_subscription');
+        return { isSubscribed: false, readerName: null, code: null };
+      }
+      return { isSubscribed: true, readerName: parsed.readerName || null, code: parsed.code };
+    } catch {
+      return { isSubscribed: false, readerName: null, code: null };
     }
-    return true;
   });
 
-  const unlock = useCallback(() => {
-    setIsSubscribed(true);
+  const unlock = useCallback((readerName = null, code = null) => {
+    setSubData({ isSubscribed: true, readerName, code });
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('scoop_subscription');
-    setIsSubscribed(false);
+    setSubData({ isSubscribed: false, readerName: null, code: null });
   }, []);
 
-  return { isSubscribed, unlock, logout };
+  return { 
+    isSubscribed: subData.isSubscribed, 
+    readerName: subData.readerName,
+    code: subData.code,
+    unlock, 
+    logout 
+  };
 }

@@ -7,12 +7,17 @@ import AdminArticleList from '../components/admin/AdminArticleList';
 import AdminCodeGenerator from '../components/admin/AdminCodeGenerator';
 import AdminCodeList from '../components/admin/AdminCodeList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Newspaper, KeyRound } from 'lucide-react';
+import { Newspaper, KeyRound, Lock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import FontLoader from '../components/newspaper/FontLoader';
 
 export default function Admin() {
   const [editingArticle, setEditingArticle] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
   const queryClient = useQueryClient();
 
   const { data: articles = [], isLoading: loadingArticles } = useQuery({
@@ -101,8 +106,65 @@ export default function Admin() {
     setShowForm(true);
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ backgroundColor: '#f4ecd8' }}>
+        <FontLoader />
+        <div 
+          className="relative rounded-sm border-2 p-8 text-center max-w-md w-full shadow-lg"
+          style={{ 
+            borderColor: '#8b7355',
+            backgroundColor: '#f4ecd8',
+            fontFamily: "'Georgia', serif"
+          }}
+        >
+          {/* Decorative corners */}
+          <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2" style={{ borderColor: '#8b7355' }} />
+          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2" style={{ borderColor: '#8b7355' }} />
+          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2" style={{ borderColor: '#8b7355' }} />
+          <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2" style={{ borderColor: '#8b7355' }} />
+
+          <Lock className="w-8 h-8 mx-auto mb-3" style={{ color: '#8b7355' }} />
+          <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "'Playfair Display', 'Georgia', serif", color: '#2c241e' }}>
+            כניסת עורך רשאי בלבד
+          </h2>
+          <p className="text-sm mb-6" style={{ color: '#5a4d3f' }}>
+            נא להזין את סיסמת העורך כדי לגשת לשולחן העבודה.
+          </p>
+          
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (passwordInput === 'Lavi4528224') {
+                setIsAuthenticated(true);
+                toast.success('התחברת בהצלחה כמנהל המערכת.');
+              } else {
+                toast.error('סיסמה שגויה. הגישה נדחתה.');
+                setPasswordInput('');
+              }
+            }}
+            className="flex gap-2"
+          >
+            <Input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              placeholder="סיסמת עורך..."
+              className="text-center font-mono tracking-widest border-2"
+              style={{ borderColor: '#c4b69c', backgroundColor: 'rgba(244, 236, 216, 0.5)', color: '#2c241e' }}
+            />
+            <Button type="submit" className="shrink-0" style={{ backgroundColor: '#2c241e', color: '#f4ecd8' }}>
+              <KeyRound className="w-4 h-4" />
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4ecd8' }}>
+
       <FontLoader />
       <div className="relative max-w-5xl mx-auto px-4 py-6">
         <NewspaperHeader />
