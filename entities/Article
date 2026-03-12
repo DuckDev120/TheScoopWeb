@@ -1,0 +1,54 @@
+{
+  "name": "Article",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Headline of the article"
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "Subtitle or deck of the article"
+    },
+    "content": {
+      "type": "string",
+      "description": "Full article body text"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL of the article's image"
+    },
+    "author": {
+      "type": "string",
+      "description": "Author or pen name"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Breaking News",
+        "Town Gossip",
+        "Market Watch",
+        "Adventurer's Log",
+        "Obituaries",
+        "Editorial",
+        "Free"
+      ],
+      "default": "Town Gossip",
+      "description": "Article category"
+    },
+    "is_free": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this article is free to read without a code"
+    },
+    "is_published": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this article is published"
+    }
+  },
+  "required": [
+    "title",
+    "content"
+  ]
+}
