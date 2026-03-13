@@ -1,16 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, Circle, Copy, Trash2, PauseCircle, PlayCircle, User, RefreshCcw } from 'lucide-react';
+import { CheckCircle, Circle, Copy, Trash2, PauseCircle, PlayCircle, User, RefreshCcw, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabaseClient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function AdminCodeList({ codes, isLoading }) {
   const queryClient = useQueryClient();
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState('');
+
   const copyCode = (code) => {
     navigator.clipboard.writeText(code);
     toast.success('הקוד הועתק!');
@@ -58,6 +62,37 @@ export default function AdminCodeList({ codes, isLoading }) {
     onError: () => toast.error('שגיאה בהחזרת הקוד לחיים')
   });
 
+  const renameReaderMutation = useMutation({
+    mutationFn: async ({ id, name }) => {
+      const { error } = await supabase
+        .from('access_codes')
+        .update({ reader_name: name.trim() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
+      toast.success('שם הקורא עודכן!');
+      setEditingId(null);
+    },
+    onError: () => toast.error('שגיאה בעדכון שם הקורא')
+  });
+
+  const startEdit = (code) => {
+    setEditingId(code.id);
+    setEditingName(code.reader_name || '');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingName('');
+  };
+
+  const saveEdit = (id) => {
+    if (!editingName.trim()) return;
+    renameReaderMutation.mutate({ id, name: editingName });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -85,43 +120,83 @@ export default function AdminCodeList({ codes, isLoading }) {
               opacity: code.is_used ? 0.6 : 1
             }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
               {code.is_used ? (
                 <CheckCircle className="w-4 h-4 shrink-0" style={{ color: '#8b7355' }} />
               ) : (
                 <Circle className="w-4 h-4 shrink-0" style={{ color: '#8b7355' }} />
               )}
               <span 
-                className="font-mono tracking-wider font-bold text-sm"
+                className="font-mono tracking-wider font-bold text-sm shrink-0"
                 style={{ color: '#2c241e' }}
               >
                 {code.code_string}
               </span>
               {code.is_used ? (
-                <Badge variant="outline" className="text-xs" style={{ borderColor: '#c4b69c', color: '#a89a82' }}>
+                <Badge variant="outline" className="text-xs shrink-0" style={{ borderColor: '#c4b69c', color: '#a89a82' }}>
                   נפדה{code.used_date ? ` · ${format(new Date(code.used_date), 'd בMMM', { locale: he })}` : ''}
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-xs" style={{ borderColor: '#8b7355', color: '#8b7355' }}>
+                <Badge variant="outline" className="text-xs shrink-0" style={{ borderColor: '#8b7355', color: '#8b7355' }}>
                   פנוי
                 </Badge>
               )}
               
               {!code.is_active && (
-                <Badge variant="destructive" className="text-xs">
+                <Badge variant="destructive" className="text-xs shrink-0">
                   מושהה
                 </Badge>
               )}
 
-              {code.reader_name && (
-                <span className="flex items-center gap-1 text-xs opacity-70 ml-2" style={{ color: '#5a4d3f' }}>
-                  <User className="w-3 h-3" />
-                  {code.reader_name}
-                </span>
-              )}
+              {/* Reader name — inline editable */}
+              <div className="flex items-center gap-1 mr-1">
+                {editingId === code.id ? (
+                  <>
+                    <Input
+                      autoFocus
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEdit(code.id);
+                        if (e.key === 'Escape') cancelEdit();
+                      }}
+                      className="h-6 text-xs px-2 w-32 border"
+                      style={{ borderColor: '#c4b69c', backgroundColor: '#faf6ed' }}
+                    />
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-6 w-6"
+                      onClick={() => saveEdit(code.id)}
+                      disabled={renameReaderMutation.isPending || !editingName.trim()}
+                      style={{ color: '#16a34a' }}
+                    >
+                      <Check className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-6 w-6"
+                      onClick={cancelEdit}
+                      style={{ color: '#ef4444' }}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </>
+                ) : (
+                  <span
+                    className="flex items-center gap-1 text-xs opacity-70 cursor-pointer hover:opacity-100 group"
+                    style={{ color: '#5a4d3f' }}
+                    onClick={() => startEdit(code)}
+                    title="לחץ לשינוי שם"
+                  >
+                    <User className="w-3 h-3" />
+                    {code.reader_name || <em>ללא שם</em>}
+                    <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+                  </span>
+                )}
+              </div>
             </div>
             
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {code.is_used && !code.is_closed && (
                 <Button 
                   variant="ghost" 

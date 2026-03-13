@@ -93,6 +93,25 @@ export default function Admin() {
     }
   });
 
+  const togglePinMutation = useMutation({
+    mutationFn: async ({ id, isPinned }) => {
+      // If pinning, first unpin all others
+      if (!isPinned) {
+        await supabase.from('articles').update({ is_pinned: false }).eq('is_pinned', true);
+      }
+      const { error } = await supabase
+        .from('articles')
+        .update({ is_pinned: !isPinned })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
+      toast.success(vars.isPinned ? 'הכתבה בוטלה מהצמדה.' : 'הכתבה הוצמדה לראש הדף!');
+    },
+    onError: () => toast.error('שגיאה בעדכון ההצמדה.')
+  });
+
   const handleSubmitArticle = (data) => {
     if (editingArticle) {
        updateArticleMutation.mutate({ id: editingArticle.id, data });
@@ -208,6 +227,7 @@ export default function Admin() {
                 onAdd={() => { setEditingArticle(null); setShowForm(true); }}
                 onEdit={handleEdit}
                 onDelete={(id) => deleteArticleMutation.mutate(id)}
+                onTogglePin={(id, isPinned) => togglePinMutation.mutate({ id, isPinned })}
               />
             )}
           </TabsContent>

@@ -7,7 +7,7 @@ import ArticleCard from '../components/newspaper/ArticleCard';
 import SubscriberGate from '../components/newspaper/SubscriberGate';
 import { useSubscription } from '../components/newspaper/useSubscription';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LogOut } from 'lucide-react';
+import { LogOut, Pin } from 'lucide-react'; // Corrected import for Pin
 import FontLoader from '../components/newspaper/FontLoader';
 
 export default function Home() {
@@ -27,8 +27,9 @@ export default function Home() {
     },
   });
 
-  const latestArticle = articles[0];
-  const olderArticles = articles.slice(1);
+  const pinnedArticle = articles.find(a => a.is_pinned);
+  const latestArticle = pinnedArticle || articles[0];
+  const olderArticles = articles.filter(a => a.id !== latestArticle?.id);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f4ecd8' }}>
@@ -95,10 +96,19 @@ export default function Home() {
           <EmptyState />
         ) : (
           <>
-            {/* Hero / Latest article */}
+            {/* Hero / Pinned or Latest article */}
             {latestArticle && (
               <section className="mb-8 pb-8 border-b-2" style={{ borderColor: '#c4b69c' }}>
-                <ArticleCard article={latestArticle} isLocked={false} variant="hero" />
+                {latestArticle.is_pinned && (
+                  <div className="flex items-center gap-1 mb-2 text-xs tracking-widest uppercase font-bold" style={{ color: '#8b7355' }}>
+                    <Pin className="w-3 h-3" /> מוצמד לראש
+                  </div>
+                )}
+                <ArticleCard
+                  article={latestArticle}
+                  isLocked={!isSubscribed && !latestArticle.is_free}
+                  variant="hero"
+                />
               </section>
             )}
 

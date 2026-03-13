@@ -45,9 +45,8 @@ export default function Article() {
     enabled: !!articleId,
   });
 
-  // Determine if this is the latest article
-  const isLatest = articles.length > 0 && articles[0]?.id === articleId;
-  const canRead = isSubscribed || article?.is_free || isLatest;
+  // Only subscribers or free articles can be read
+  const canRead = isSubscribed || article?.is_free;
 
   return (
     <div className="min-h-screen text-right" style={{ backgroundColor: '#f4ecd8', direction: 'rtl' }}>

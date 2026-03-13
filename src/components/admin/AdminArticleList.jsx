@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, EyeOff, Pin } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function AdminArticleList({ articles, isLoading, onAdd, onEdit, onDelete }) {
+export default function AdminArticleList({ articles, isLoading, onAdd, onEdit, onDelete, onTogglePin }) {
   return (
     <div className="text-right" style={{ direction: 'rtl' }}>
       <div className="flex items-center justify-between mb-4">
@@ -43,6 +43,11 @@ export default function AdminArticleList({ articles, isLoading, onAdd, onEdit, o
                       חינמי
                     </Badge>
                   )}
+                  {article.is_pinned && (
+                    <Badge className="text-xs shrink-0" style={{ backgroundColor: '#8b7355', color: '#f4ecd8' }}>
+                      <Pin className="w-2.5 h-2.5 ml-1" /> מוצמד
+                    </Badge>
+                  )}
                   {!article.is_published && (
                     <Badge variant="outline" className="text-xs shrink-0" style={{ borderColor: '#c4b69c', color: '#a89a82' }}>
                       <EyeOff className="w-3 h-3 ml-1" /> טיוטה
@@ -56,6 +61,15 @@ export default function AdminArticleList({ articles, isLoading, onAdd, onEdit, o
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onTogglePin(article.id, article.is_pinned)}
+                  style={{ color: article.is_pinned ? '#8b7355' : '#c4b69c' }}
+                  title={article.is_pinned ? 'בטל הצמדה' : 'הצמד לראש הדף'}
+                >
+                  <Pin className="w-4 h-4" />
+                </Button>
                 <Button variant="ghost" size="icon" onClick={() => onEdit(article)} style={{ color: '#8b7355' }}>
                   <Pencil className="w-4 h-4" />
                 </Button>
