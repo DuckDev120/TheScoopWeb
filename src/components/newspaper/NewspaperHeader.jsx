@@ -71,7 +71,7 @@ export default function NewspaperHeader() {
         <div className="flex flex-col items-start gap-1">
           <span>{today}</span>
           <Link 
-            to="/pricing"
+            to="/Pricing"
             className="flex items-center justify-center gap-1.5 py-1 px-3 border border-[#8b7355]/30 text-[10px] font-bold uppercase tracking-widest transition-all hover:bg-[#8b7355]/5 hover:border-[#8b7355]/50 group bg-[#faf6ed]/50"
             style={{ color: '#8b7355' }}
           >
