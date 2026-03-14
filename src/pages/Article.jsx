@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import NewspaperHeader from '../components/newspaper/NewspaperHeader';
 import NewspaperFooter from '../components/newspaper/NewspaperFooter';
 import SubscriberGate from '../components/newspaper/SubscriberGate';
+import SidebarAds from '../components/newspaper/SidebarAds';
 import { useSubscription } from '../components/newspaper/useSubscription';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, LogOut } from 'lucide-react';
@@ -36,7 +37,7 @@ export default function Article() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('articles')
-        .select('*')
+        .select('id, title, subtitle, author, category, image_url, is_free, is_sponsored, created_at, summary')
         .eq('id', articleId)
         .single();
       if (error) throw error;
@@ -48,6 +49,21 @@ export default function Article() {
   // Only subscribers or free articles can be read
   const canRead = isSubscribed || article?.is_free;
 
+  // Secondary fetch for content only if authorized
+  const { data: fullContent, isLoading: isLoadingContent } = useQuery({
+    queryKey: ['article-content', articleId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('articles')
+        .select('content')
+        .eq('id', articleId)
+        .single();
+      if (error) throw error;
+      return data.content;
+    },
+    enabled: !!articleId && canRead,
+  });
+
   return (
     <div className="min-h-screen text-right" style={{ backgroundColor: '#f4ecd8', direction: 'rtl' }}>
       <FontLoader />
@@ -58,8 +74,14 @@ export default function Article() {
         }}
       />
 
-      <div className="relative max-w-3xl mx-auto px-4 py-6">
-        <NewspaperHeader />
+      <div className="relative max-w-[1500px] mx-auto flex justify-center gap-8 px-4 min-h-screen">
+        {/* Left Sidebar Ads - Desktop only */}
+        <aside className="hidden xl:flex flex-col w-64 shrink-0 min-h-full border-l border-r border-transparent" style={{ borderColor: 'rgba(139, 115, 85, 0.1)' }}>
+          <SidebarAds position="left" />
+        </aside>
+
+        <main className="relative max-w-3xl w-full py-6">
+          <NewspaperHeader />
 
         {/* Nav bar */}
         <div className="flex items-center justify-between mb-6 pb-2 border-b" style={{ borderColor: '#c4b69c' }}>
@@ -71,16 +93,6 @@ export default function Article() {
             <ArrowRight className="w-3 h-3" />
             חזרה לעמוד הראשי
           </Link>
-          {isSubscribed && (
-            <button 
-              onClick={logout}
-              className="flex items-center gap-1 text-xs hover:opacity-70 transition-opacity"
-              style={{ color: '#8b7355', fontFamily: "'Georgia', serif" }}
-            >
-              <LogOut className="w-3 h-3" />
-              סיום מנוי
-            </button>
-          )}
         </div>
 
         {isLoading ? (
@@ -91,11 +103,23 @@ export default function Article() {
           </div>
         ) : !canRead ? (
           <LockedArticle article={article} onUnlock={unlock} />
+        ) : isLoadingContent ? (
+          <div className="space-y-4">
+             <Skeleton className="h-4 w-full" style={{ backgroundColor: '#e6dcc6' }} />
+             <Skeleton className="h-4 w-full" style={{ backgroundColor: '#e6dcc6' }} />
+             <Skeleton className="h-4 w-3/4" style={{ backgroundColor: '#e6dcc6' }} />
+          </div>
         ) : (
-          <ArticleContent article={article} />
+          <ArticleContent article={{...article, content: fullContent}} />
         )}
 
         <NewspaperFooter />
+        </main>
+
+        {/* Right Sidebar Ads - Desktop only */}
+        <aside className="hidden xl:flex flex-col w-64 shrink-0 min-h-full border-l border-r border-transparent" style={{ borderColor: 'rgba(139, 115, 85, 0.1)' }}>
+          <SidebarAds position="right" />
+        </aside>
       </div>
     </div>
   );
@@ -109,14 +133,23 @@ function ArticleContent({ article }) {
   return (
     <article>
       {/* Category */}
-      {article.category && (
-        <span 
-          className="text-xs tracking-widest uppercase font-bold"
-          style={{ color: '#8b7355', fontFamily: "'Georgia', serif" }}
-        >
-          {article.category}
-        </span>
-      )}
+      <div className="flex items-center gap-2 mb-2">
+        {article.category && (
+          <span 
+            className="text-xs tracking-widest uppercase font-bold hover:underline cursor-pointer"
+            style={{ color: '#8b7355', fontFamily: "'Georgia', serif" }}
+            onClick={() => window.location.href = `/Home?category=${encodeURIComponent(article.category)}`}
+          >
+            {article.category}
+          </span>
+        )}
+
+        {article.is_sponsored && (
+          <span className="text-[10px] tracking-widest uppercase font-bold px-1 rounded-sm border" style={{ color: '#d97706', borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.05)', fontFamily: "'Georgia', serif" }}>
+            תוכן ממומן
+          </span>
+        )}
+      </div>
 
       {/* Headline */}
       <h1 
@@ -165,16 +198,13 @@ function ArticleContent({ article }) {
 
       {/* Body */}
       <div 
-        className="text-base leading-relaxed space-y-4 text-justify"
+        className="text-base leading-relaxed space-y-6 text-justify"
         style={{ 
           fontFamily: "'Georgia', serif",
           color: '#2c241e',
-          columnCount: window.innerWidth > 768 ? 2 : 1,
-          columnGap: '2rem',
-          columnRule: '1px solid #c4b69c'
         }}
       >
-        {article.content.split('\n').filter(Boolean).map((paragraph, i) => (
+        {article.content?.split('\n').filter(Boolean).map((paragraph, i) => (
           <p key={i}>
             {paragraph}
           </p>
@@ -190,16 +220,27 @@ function ArticleContent({ article }) {
 }
 
 function LockedArticle({ article, onUnlock }) {
+  const previewText = article.summary || article.content?.substring(0, 300) || "...";
+
   return (
     <div>
-      {article.category && (
-        <span 
-          className="text-xs tracking-widest uppercase font-bold"
-          style={{ color: '#8b7355', fontFamily: "'Georgia', serif" }}
-        >
-          {article.category}
-        </span>
-      )}
+      <div className="flex items-center gap-2 mb-2">
+        {article.category && (
+          <span 
+            className="text-xs tracking-widest uppercase font-bold hover:underline cursor-pointer"
+            style={{ color: '#8b7355', fontFamily: "'Georgia', serif" }}
+            onClick={() => window.location.href = `/Home?category=${encodeURIComponent(article.category)}`}
+          >
+            {article.category}
+          </span>
+        )}
+
+        {article.is_sponsored && (
+          <span className="text-[10px] tracking-widest uppercase font-bold px-1 rounded-sm border" style={{ color: '#d97706', borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.05)', fontFamily: "'Georgia', serif" }}>
+            תוכן ממומן
+          </span>
+        )}
+      </div>
 
       <h1 
         className="text-4xl md:text-5xl font-bold leading-tight mt-2 mb-3"
@@ -220,7 +261,7 @@ function LockedArticle({ article, onUnlock }) {
           className="text-base leading-relaxed blur-[6px]"
           style={{ fontFamily: "'Georgia', serif", color: '#2c241e' }}
         >
-          {article.content?.substring(0, 500)}...
+          {previewText} {previewText.length > 200 ? '...' : ''}
         </p>
         <div 
           className="absolute bottom-0 left-0 right-0 h-32"

@@ -48,6 +48,11 @@ export default function AdminArticleList({ articles, isLoading, onAdd, onEdit, o
                       <Pin className="w-2.5 h-2.5 ml-1" /> מוצמד
                     </Badge>
                   )}
+                  {article.is_sponsored && (
+                    <Badge variant="outline" className="text-xs shrink-0" style={{ borderColor: '#d97706', color: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.05)' }}>
+                      ממומן
+                    </Badge>
+                  )}
                   {!article.is_published && (
                     <Badge variant="outline" className="text-xs shrink-0" style={{ borderColor: '#c4b69c', color: '#a89a82' }}>
                       <EyeOff className="w-3 h-3 ml-1" /> טיוטה

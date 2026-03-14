@@ -9,19 +9,22 @@ import { ArrowLeft, Save, Loader2, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { toast } from 'sonner';
 
-const CATEGORIES = ['חדשות מתפרצות', 'רכילות העיר', 'מבט לשוק', 'יומן הרפתקנים', 'הספדים', 'מאמר מערכת', 'חינמי'];
+import { useSiteSettings } from '../newspaper/useSiteSettings';
 
 
 export default function AdminArticleForm({ article, onSubmit, onCancel, isSubmitting }) {
+  const { categories: managedCategories } = useSiteSettings();
+  
   const [form, setForm] = useState({
     title: article?.title || '',
     subtitle: article?.subtitle || '',
     content: article?.content || '',
     image_url: article?.image_url || '',
     author: article?.author || '',
-    category: article?.category || 'רכילות העיר',
+    category: article?.category || (managedCategories.length > 0 ? managedCategories[0] : ''),
     is_free: article?.is_free || false,
     is_published: article?.is_published ?? true,
+    is_sponsored: article?.is_sponsored || false,
   });
   
   const [imageFile, setImageFile] = useState(null);
@@ -59,7 +62,10 @@ export default function AdminArticleForm({ article, onSubmit, onCancel, isSubmit
       setIsUploadingImage(false);
     }
 
-    onSubmit({ ...form, image_url: finalImageUrl });
+    // Automatically generate summary if not present (safeguard)
+    const summary = form.content.substring(0, 300) + (form.content.length > 300 ? '...' : '');
+
+    onSubmit({ ...form, image_url: finalImageUrl, summary });
   };
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -123,7 +129,7 @@ export default function AdminArticleForm({ article, onSubmit, onCancel, isSubmit
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {managedCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -165,6 +171,10 @@ export default function AdminArticleForm({ article, onSubmit, onCancel, isSubmit
           <div className="flex items-center gap-2">
             <Switch checked={form.is_published} onCheckedChange={(v) => update('is_published', v)} />
             <Label className="text-sm" style={{ color: '#2c241e', fontFamily: "'Georgia', serif" }}>פורסם</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={form.is_sponsored} onCheckedChange={(v) => update('is_sponsored', v)} />
+            <Label className="text-sm" style={{ color: '#2c241e', fontFamily: "'Georgia', serif" }}>תוכן ממומן</Label>
           </div>
         </div>
 

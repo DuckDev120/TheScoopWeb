@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { KeyRound, Copy, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSiteSettings } from '../newspaper/useSiteSettings';
+import { addDays } from 'date-fns';
 
 function generateCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -19,6 +21,12 @@ export default function AdminCodeGenerator({ onGenerated }) {
   const [lastCode, setLastCode] = useState(null);
   const [count, setCount] = useState(1);
   const [readerName, setReaderName] = useState('');
+  const { defaultExpiry } = useSiteSettings();
+  const [expiryDays, setExpiryDays] = useState(defaultExpiry);
+
+  React.useEffect(() => {
+    setExpiryDays(defaultExpiry);
+  }, [defaultExpiry]);
 
   const handleGenerate = async () => {
     if (!readerName.trim()) {
@@ -28,12 +36,16 @@ export default function AdminCodeGenerator({ onGenerated }) {
 
     setGenerating(true);
     const codes = [];
+    const days = parseInt(expiryDays) || parseInt(defaultExpiry) || 7;
+    const expiryDate = addDays(new Date(), days);
+
     for (let i = 0; i < count; i++) {
       codes.push({ 
         code_string: generateCode(), 
         is_used: false,
         reader_name: readerName.trim(),
-        is_active: true
+        is_active: true,
+        expires_at: expiryDate.toISOString()
       });
     }
     
@@ -101,6 +113,19 @@ export default function AdminCodeGenerator({ onGenerated }) {
             onChange={(e) => setReaderName(e.target.value)}
             placeholder="למשל: יוסף מזרחי..."
             className="w-full border-2"
+            style={{ borderColor: '#c4b69c', backgroundColor: '#faf6ed' }}
+          />
+        </div>
+        <div>
+          <label className="text-xs mb-1 block" style={{ color: '#8b7355', fontFamily: "'Georgia', serif" }}>
+            תוקף (ימים)
+          </label>
+          <Input
+            type="number"
+            min="1"
+            value={expiryDays}
+            onChange={(e) => setExpiryDays(e.target.value)}
+            className="w-20 border-2"
             style={{ borderColor: '#c4b69c', backgroundColor: '#faf6ed' }}
           />
         </div>

@@ -24,7 +24,7 @@ export default function ArticleCard({ article, isLocked, variant = 'default' }) 
             <img
               src={article.image_url}
               alt={article.title}
-              className={`w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105`}
+              className={`w-full object-cover transition-transform duration-500 group-hover:scale-105 ${isHero ? 'aspect-[21/9] max-h-72' : 'aspect-video'}`}
               style={{ filter: 'sepia(40%) contrast(1.1) brightness(0.95)' }}
             />
           </div>
@@ -33,10 +33,21 @@ export default function ArticleCard({ article, isLocked, variant = 'default' }) 
         {/* Category badge */}
         {article.category && (
           <span 
-            className="text-xs tracking-widest uppercase font-bold"
+            className="text-xs tracking-widest uppercase font-bold relative z-10 hover:underline cursor-pointer"
             style={{ color: '#8b7355', fontFamily: "'Georgia', serif" }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.location.href = `/Home?category=${encodeURIComponent(article.category)}`;
+            }}
           >
             {article.category}
+          </span>
+        )}
+
+        {article.is_sponsored && (
+          <span className="text-[10px] tracking-widest uppercase font-bold mr-2 px-1 rounded-sm border" style={{ color: '#d97706', borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.05)', fontFamily: "'Georgia', serif" }}>
+            תוכן ממומן
           </span>
         )}
 

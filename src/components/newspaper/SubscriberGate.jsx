@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Lock, KeyRound, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSiteSettings } from './useSiteSettings';
 
 export default function SubscriberGate({ onUnlock }) {
   const [code, setCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const { weeklyPrice } = useSiteSettings();
 
   const handleVerify = async () => {
     if (!code.trim()) return;
@@ -43,9 +45,9 @@ export default function SubscriberGate({ onUnlock }) {
       return;
     }
 
-    if (accessCode.is_used) {
-      setErrorMsg('הקוד הזה כבר נפדה על ידי קורא אחר.');
-      toast.error('הקוד הזה כבר נפדה על ידי קורא אחר.');
+    if (accessCode.expires_at && new Date(accessCode.expires_at) < new Date()) {
+      setErrorMsg('תוקף הקוד פג. אנא פנו למערכת לחידוש המנוי.');
+      toast.error('תוקף הקוד פג.');
       setVerifying(false);
       return;
     }
@@ -66,17 +68,9 @@ export default function SubscriberGate({ onUnlock }) {
       return;
     }
 
-    // Store subscription in localStorage (until year 2100)
-    const expiry = new Date('2100-01-01').getTime();
-    localStorage.setItem('scoop_subscription', JSON.stringify({ 
-      code: code.trim().toUpperCase(), 
-      readerName: accessCode.reader_name,
-      expiry 
-    }));
-
     toast.success(`ברוכים הבאים, ${accessCode.reader_name || 'קורא יקר'}! הארכיון פתוח בפניכם.`);
     setVerifying(false);
-    onUnlock(accessCode.reader_name);
+    onUnlock(accessCode.reader_name, code.trim().toUpperCase(), accessCode.expires_at);
   };
 
   return (
@@ -101,7 +95,7 @@ export default function SubscriberGate({ onUnlock }) {
       </h3>
       
       <p className="text-sm mb-5" style={{ color: '#5a4d3f' }}>
-        תוכן זה שמור למנויים נכבדים של The Scoop במחיר השקה: <strong style={{ color: '#8b7355' }}>35 אלדריות בשבוע!</strong><br />
+        תוכן זה שמור למנויים נכבדים של The Scoop במחיר השקה: <strong style={{ color: '#8b7355' }}>{weeklyPrice} אלדריות בשבוע!</strong><br />
         הזינו את קוד הגישה הבלעדי שלכם למטה כדי לקרוא.
       </p>
 

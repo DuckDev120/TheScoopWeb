@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Home from './pages/Home';
 import Article from './pages/Article';
+import Pricing from './pages/Pricing';
 import Admin from './pages/Admin';
 
 const AuthenticatedApp = () => {
@@ -38,6 +39,7 @@ const AuthenticatedApp = () => {
       <Route path="/" element={<Navigate to="/Home" replace />} />
       <Route path="/Home" element={<Home />} />
       <Route path="/Article" element={<Article />} />
+      <Route path="/Pricing" element={<Pricing />} />
       <Route path="/Admin" element={<Admin />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import SubscriberGate from './SubscriberGate';
 import { useSubscription } from './useSubscription';
-import { LogOut } from 'lucide-react';
+import { useSiteSettings } from './useSiteSettings';
+import { LogOut, Megaphone, KeyRound } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { toast } from 'sonner';
 
@@ -25,6 +26,7 @@ export default function NewspaperHeader() {
   const [now, setNow] = useState(new Date());
   const [isOpen, setIsOpen] = useState(false);
   const { isSubscribed, readerName, code, unlock, logout } = useSubscription();
+  const { weeklyPrice } = useSiteSettings();
 
   const handleUnlock = () => {
     unlock();
@@ -66,7 +68,17 @@ export default function NewspaperHeader() {
   return (
     <header className="text-center border-b-4 border-double pb-4 mb-6" style={{ borderColor: '#8b7355' }}>
       <div className="flex items-start justify-between px-4 text-xs tracking-widest uppercase mb-2" style={{ color: '#8b7355' }}>
-        <span>{today}</span>
+        <div className="flex flex-col items-start gap-1">
+          <span>{today}</span>
+          <Link 
+            to="/pricing"
+            className="flex items-center justify-center gap-1.5 py-1 px-3 border border-[#8b7355]/30 text-[10px] font-bold uppercase tracking-widest transition-all hover:bg-[#8b7355]/5 hover:border-[#8b7355]/50 group bg-[#faf6ed]/50"
+            style={{ color: '#8b7355' }}
+          >
+            <Megaphone className="w-3 h-3" />
+            תמחור ופרסום
+          </Link>
+        </div>
         <span>{/* Empty to balance the flex layout */}</span>
         <div className="flex flex-col items-end gap-2">
           {isSubscribed ? (
@@ -84,7 +96,7 @@ export default function NewspaperHeader() {
             </div>
           ) : (
             <>
-              <span>מחיר: 35 אלדריות</span>
+              <span>מחיר: {weeklyPrice} אלדריות</span>
               <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogTrigger asChild>
                   <button 
@@ -98,6 +110,7 @@ export default function NewspaperHeader() {
                   <SubscriberGate onUnlock={handleUnlock} />
                 </DialogContent>
               </Dialog>
+              
             </>
           )}
         </div>

@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, Circle, Copy, Trash2, PauseCircle, PlayCircle, User, RefreshCcw, Pencil, Check, X } from 'lucide-react';
+import { CheckCircle, Circle, Copy, Trash2, PauseCircle, PlayCircle, User, RefreshCcw, Pencil, Check, X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -14,6 +14,8 @@ export default function AdminCodeList({ codes, isLoading }) {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [editingExpiryId, setEditingExpiryId] = useState(null);
+  const [editingExpiryValue, setEditingExpiryValue] = useState('');
 
   const copyCode = (code) => {
     navigator.clipboard.writeText(code);
@@ -78,6 +80,22 @@ export default function AdminCodeList({ codes, isLoading }) {
     onError: () => toast.error('שגיאה בעדכון שם הקורא')
   });
 
+  const updateExpiryMutation = useMutation({
+    mutationFn: async ({ id, expiresAt }) => {
+      const { error } = await supabase
+        .from('access_codes')
+        .update({ expires_at: expiresAt ? new Date(expiresAt).toISOString() : null })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
+      toast.success('תוקף הקוד עודכן!');
+      setEditingExpiryId(null);
+    },
+    onError: () => toast.error('שגיאה בעדכון התוקף')
+  });
+
   const startEdit = (code) => {
     setEditingId(code.id);
     setEditingName(code.reader_name || '');
@@ -91,6 +109,16 @@ export default function AdminCodeList({ codes, isLoading }) {
   const saveEdit = (id) => {
     if (!editingName.trim()) return;
     renameReaderMutation.mutate({ id, name: editingName });
+  };
+
+  const startExpiryEdit = (code) => {
+    setEditingExpiryId(code.id);
+    const dateStr = code.expires_at ? format(new Date(code.expires_at), 'yyyy-MM-dd') : '';
+    setEditingExpiryValue(dateStr);
+  };
+
+  const saveExpiryEdit = (id) => {
+    updateExpiryMutation.mutate({ id, expiresAt: editingExpiryValue });
   };
 
   if (isLoading) {
@@ -147,6 +175,54 @@ export default function AdminCodeList({ codes, isLoading }) {
                   מושהה
                 </Badge>
               )}
+
+                <div className="flex items-center gap-1">
+                  {editingExpiryId === code.id ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="date"
+                        value={editingExpiryValue}
+                        onChange={(e) => setEditingExpiryValue(e.target.value)}
+                        className="h-6 text-xs px-1 w-28 border"
+                        style={{ borderColor: '#c4b69c', backgroundColor: '#faf6ed' }}
+                      />
+                      <Button
+                        variant="ghost" size="icon" className="h-6 w-6"
+                        onClick={() => saveExpiryEdit(code.id)}
+                        disabled={updateExpiryMutation.isPending}
+                        style={{ color: '#16a34a' }}
+                      >
+                        <Check className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon" className="h-6 w-6"
+                        onClick={() => setEditingExpiryId(null)}
+                        style={{ color: '#ef4444' }}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs shrink-0 flex items-center gap-1 cursor-pointer hover:bg-white transition-colors ${code.expires_at && new Date(code.expires_at) < new Date() ? 'bg-red-100 text-red-700 border-red-200' : ''}`}
+                      style={!code.expires_at || new Date(code.expires_at) >= new Date() ? { borderColor: '#c4b69c', color: '#8b7355' } : {}}
+                      onClick={() => startExpiryEdit(code)}
+                      title={code.expires_at ? "לחץ לעריכת תוקף" : "לחץ לקביעת תוקף"}
+                    >
+                      <Clock className="w-3 h-3" />
+                      {code.expires_at ? (
+                        <>
+                          תוקף: {format(new Date(code.expires_at), 'd/MM/yy')}
+                          {new Date(code.expires_at) < new Date() && ' (פג תוקף)'}
+                        </>
+                      ) : (
+                        "ללא תוקף (קבע כעת)"
+                      )}
+                      <Pencil className="w-2 h-2 ml-1 opacity-40" />
+                    </Badge>
+                  )}
+                </div>
 
               {/* Reader name — inline editable */}
               <div className="flex items-center gap-1 mr-1">
