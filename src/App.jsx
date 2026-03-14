@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Home from '@/pages/Home.jsx';
 import Article from '@/pages/Article.jsx';
-import Pricing from '@/pages/Pricing.jsx';
+import Pricing from '@/pages/PricingPage.jsx';
 import Admin from '@/pages/Admin.jsx';
 
 const AuthenticatedApp = () => {
